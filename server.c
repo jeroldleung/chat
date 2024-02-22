@@ -48,19 +48,20 @@ void create_client(int clientfd) {
 void free_client(struct client *c) {
   chat->clients[c->fd] = NULL;
   chat->numclients -= 1;
-  if (chat->maxclientfd == c->fd) {
-    int i;
-    for (i = chat->maxclientfd - 1; i >= 0; i--) {
-      if (chat->clients[i]) {
-        chat->maxclientfd = chat->clients[i]->fd;
-        break;
-      }
-    }
-    if (i == -1) {
-      chat->maxclientfd = -1;
-    }
+  if (chat->maxclientfd > c->fd) {
+    goto freeit;
   }
 
+  // Otherwise, update the maximum client fd
+  for (int i = chat->maxclientfd - 1; i >= 0; i--) {
+    if (chat->clients[i]) {
+      chat->maxclientfd = chat->clients[i]->fd;
+      goto freeit;
+    }
+  }
+  chat->maxclientfd = -1; // no clients
+
+freeit:
   close(c->fd);
   free(c);
 }
