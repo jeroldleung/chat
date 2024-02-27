@@ -29,7 +29,7 @@ void create_client(int clientfd) {
   struct client *c;
   c = (struct client *)malloc(sizeof(*c));
   if (c == NULL) {
-    perror("Failed to create a new client\n");
+    perror("Failed to create a new client");
     exit(1);
   }
 
@@ -71,7 +71,10 @@ void send_to_other_clients(int sender, char *msg, size_t len) {
     if (chat->clients[i] == NULL || chat->clients[i]->fd == sender) {
       continue;
     }
-    write(chat->clients[i]->fd, msg, len);
+    if (write(chat->clients[i]->fd, msg, len) == -1) {
+      perror("Could not send messages to other clients");
+      exit(1);
+    }
   }
 }
 
@@ -144,7 +147,7 @@ int main() {
     maxfd = chat->socket > chat->maxclientfd ? chat->socket : chat->maxclientfd;
     nready = select(maxfd + 1, &readfds, NULL, NULL, &t);
     if (nready == -1) {
-      perror("Failed to call select system call\n");
+      perror("Failed to call select system call");
       exit(1);
     }
 
@@ -155,12 +158,15 @@ int main() {
       socklen_t len = sizeof(addr);
 
       if ((fd = accept(chat->socket, (struct sockaddr *)&addr, &len)) == -1) {
-        perror("Failed to accept new connection\n");
+        perror("Failed to accept new connection");
         exit(1);
       }
       create_client(fd);
       char *msg = "Welcome to the chat!\n";
-      write(fd, msg, strlen(msg));
+      if (write(fd, msg, strlen(msg)) == -1) {
+        perror("Could not send welcome message to the client");
+        exit(1);
+      }
       printf("Connected client fd: %d\n", fd);
     }
 
